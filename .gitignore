@@ -7,3 +7,9 @@
 
 # Ignore the category_mapping.json file
 category_mapping.json
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
