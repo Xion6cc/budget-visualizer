@@ -1,0 +1,9 @@
+# Ignore the input and output folders
+/input/
+/output/
+
+# Ignore all Jupyter Notebook files
+*.ipynb
+
+# Ignore the category_mapping.json file
+category_mapping.json
