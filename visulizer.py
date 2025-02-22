@@ -32,6 +32,19 @@ category_mapping = {
     'Investment': 'Investment'
 }
 
+# Add currency conversion rates
+currency_rates = {
+    'GBP': 1.0,
+    'USD': 1.25,
+    'RMB': 9.2
+}
+
+currency_symbols = {
+    'GBP': '£',
+    'USD': '$',
+    'RMB': '¥'
+}
+
 # Layout of the dashboard
 app.layout = html.Div([
     html.H1("Monthly Expense Dashboard"),
@@ -55,6 +68,18 @@ app.layout = html.Div([
             clearable=True
         ),
     ], style={'marginBottom': 20}),
+
+    dcc.Dropdown(
+        id='currency-selector',
+        options=[
+            {'label': 'GBP (£)', 'value': 'GBP'},
+            {'label': 'USD ($)', 'value': 'USD'},
+            {'label': 'RMB (¥)', 'value': 'RMB'}
+        ],
+        value='GBP',
+        clearable=False,
+        style={'marginBottom': 10}
+    ),
 
     dcc.Checklist(id='higher-category-checkbox', options=[{'label': 'Enable Higher Level Category', 'value': 'Higher_Category'}], value=['Higher_Category']),
 
@@ -95,11 +120,12 @@ def load_and_process_data(contents, use_higher_category):
     [Input('upload-data', 'contents'),
      Input('higher-category-checkbox', 'value'),
      Input('year-dropdown', 'value'),
-     Input('category-filter', 'value')]
+     Input('category-filter', 'value'),
+     Input('currency-selector', 'value')]
 )
-def update_uploaded_file(contents, use_higher_category, selected_years, selected_categories):
+def update_uploaded_file(contents, use_higher_category, selected_years, selected_categories, selected_currency):
     if contents is None:
-        return px.bar(), px.line(), "Total Spent: £0", "Average per Month: £0", [], [], [], []
+        return px.bar(), px.line(), f"Total Spent: {currency_symbols[selected_currency]}0", f"Average per Month: {currency_symbols[selected_currency]}0", [], [], [], []
 
     global uploaded_df
     load_and_process_data(contents, use_higher_category)
@@ -128,6 +154,13 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
     if selected_categories:
         filtered_df = filtered_df[filtered_df['Category'].isin(selected_categories)]
 
+    # Apply currency conversion
+    conversion_rate = currency_rates[selected_currency]
+    filtered_df['Amount'] = filtered_df['Amount'] * conversion_rate
+    
+    # Update the currency symbol in displays
+    currency_symbol = currency_symbols[selected_currency]
+
     # Calculate total spent and average per month
     total_spent = filtered_df['Amount'].sum()
     num_months = len(filtered_df['Year_Month'].unique())
@@ -136,6 +169,7 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
     # Create line chart for monthly totals with text annotations
     monthly_totals = filtered_df.groupby('Year_Month')['Amount'].sum().reset_index()
     monthly_totals['Year_Month'] = pd.to_datetime(monthly_totals['Year_Month'])
+    monthly_totals['Amount'] = monthly_totals['Amount'].round(0)  # Round to whole numbers
     
     line_fig = px.line(
         monthly_totals,
@@ -145,10 +179,10 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
         labels={'Amount': 'Total Expense', 'Year_Month': 'Month'}
     )
     
-    # Add text annotations above each point
+    # Add text annotations above each point with rounded numbers
     line_fig.update_traces(
         mode='lines+markers+text',
-        text=monthly_totals['Amount'].round(2).apply(lambda x: f'£{x:,.2f}'),
+        text=monthly_totals['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}'),  # Remove decimals
         textposition='top center'
     )
     
@@ -160,6 +194,7 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
 
     # Group by month and category for bar chart
     grouped_df = filtered_df[['Year_Month', 'Category', 'Amount']].groupby(['Year_Month', 'Category'], as_index=False).sum()
+    grouped_df['Amount'] = grouped_df['Amount'].round(0)  # Round to whole numbers
     unique_months = sorted(filtered_df['Year_Month'].unique())
     color_scale = px.colors.cyclical.mygbm
 
@@ -173,7 +208,7 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
         title='Monthly Expense by Category',
         category_orders={'Year_Month': unique_months},
         color_continuous_scale=color_scale,
-        text='Amount',
+        text=grouped_df['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}'),  # Remove decimals
         hover_data=['Year_Month'],
     )
 
@@ -186,8 +221,8 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
     return (
         bar_fig, 
         line_fig, 
-        f"Total Spent: £{total_spent:,.2f}",
-        f"Average per Month: £{avg_per_month:,.2f}", 
+        f"Total Spent: {currency_symbol}{total_spent:,.2f}",
+        f"Average per Month: {currency_symbol}{avg_per_month:,.2f}", 
         year_options, 
         selected_years, 
         category_options, 
@@ -197,14 +232,14 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
 # Callback to update the table based on the selected stack in the bar chart
 @app.callback(
     Output('expense-table', 'children'),
-    [Input('expense-bar-chart', 'clickData')]
+    [Input('expense-bar-chart', 'clickData'),
+     Input('currency-selector', 'value')]
 )
-def update_table(selected_data):
+def update_table(selected_data, selected_currency):
     if selected_data is None:
         return []
 
     global uploaded_df
-
     filtered_df = uploaded_df.copy()
 
     if selected_data and 'points' in selected_data:
@@ -212,18 +247,40 @@ def update_table(selected_data):
         date = point['label']
         date_object = datetime.strptime(date, '%Y-%m-%d')
         year_month = date_object.strftime('%Y-%m')
-        amount = point['value']
+        clicked_amount = round(float(point['value']))  # Round the clicked amount
+
+        # Apply currency conversion to the filtered dataframe
+        conversion_rate = currency_rates[selected_currency]
+        filtered_df['Amount'] = (filtered_df['Amount'] * conversion_rate).round(0)  # Round after conversion
 
         # Group by month and category and aggregate the amount
-        grouped_df = uploaded_df[['Year_Month', 'Category', 'Amount']].groupby(['Year_Month', 'Category'], as_index=False).sum()
+        grouped_df = filtered_df[['Year_Month', 'Category', 'Amount']].groupby(['Year_Month', 'Category'], as_index=False).sum()
+        grouped_df['Amount'] = grouped_df['Amount'].round(0)  # Round aggregated amounts
 
-        # Find the category based on the selected month and amount
-        category = grouped_df[(grouped_df['Year_Month'] == year_month) & (grouped_df['Amount'] == amount)]['Category'].values[0]
-
-        filtered_df = filtered_df[(filtered_df['Year_Month'] == year_month) & (filtered_df['Category'] == category)]
+        # Find the category based on the selected month and approximate amount match
+        # Increased tolerance to 2 units to account for rounding differences
+        mask = (grouped_df['Year_Month'] == year_month) & (abs(grouped_df['Amount'] - clicked_amount) <= 2)
+        if len(grouped_df[mask]) > 0:
+            category = grouped_df[mask]['Category'].values[0]
+            filtered_df = filtered_df[(filtered_df['Year_Month'] == year_month) & (filtered_df['Category'] == category)]
+        else:
+            # Fallback: try finding the closest amount for that month and category
+            month_data = grouped_df[grouped_df['Year_Month'] == year_month]
+            if not month_data.empty:
+                closest_amount = month_data.iloc[(month_data['Amount'] - clicked_amount).abs().argsort()[:1]]
+                category = closest_amount['Category'].values[0]
+                filtered_df = filtered_df[(filtered_df['Year_Month'] == year_month) & 
+                                       (filtered_df['Category'] == category)]
+            else:
+                return []
 
     # Sort by Amount in descending order
     filtered_df = filtered_df.sort_values(by='Amount', ascending=False)
+    
+    # Format amounts with currency symbol
+    currency_symbol = currency_symbols[selected_currency]
+    filtered_df['Amount'] = filtered_df['Amount'].apply(lambda x: f"{currency_symbol}{int(x):,}")
+
     # Display only relevant columns in the table
     table_columns = ['Date', 'Category', 'Description', 'Amount']
     table_rows = [html.Tr([html.Th(col) for col in table_columns])]
