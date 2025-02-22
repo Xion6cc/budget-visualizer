@@ -6,6 +6,11 @@ import pandas as pd
 import plotly.express as px
 import base64
 import io
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Dash app
 app = dash.Dash(__name__)
@@ -56,6 +61,18 @@ app.layout = html.Div([
     ),
 
     html.Div([
+        # Add time period selector
+        dcc.RadioItems(
+            id='time-period-selector',
+            options=[
+                {'label': 'Yearly', 'value': 'year'},
+                {'label': 'Monthly', 'value': 'month'},
+                {'label': 'Weekly', 'value': 'week'}
+            ],
+            value='month',
+            inline=True,
+            style={'marginBottom': 10}
+        ),
         dcc.Dropdown(
             id='year-dropdown',
             multi=True,
@@ -93,7 +110,7 @@ app.layout = html.Div([
 ])
 
 # Function to load and process the data
-def load_and_process_data(contents, use_higher_category):
+def load_and_process_data(contents, use_higher_category, time_period):
     global uploaded_df
 
     content_type, content_string = contents.split(',')
@@ -101,7 +118,24 @@ def load_and_process_data(contents, use_higher_category):
     uploaded_df = pd.read_json(io.StringIO(decoded.decode('utf-8')), orient='records', lines=True)[['Date', 'Description', 'Category', 'Final_Amount']]
     uploaded_df = uploaded_df.rename(columns={'Final_Amount': 'Amount'})
     uploaded_df['Amount'] = uploaded_df['Amount'].round(2)
-    uploaded_df['Year_Month'] = pd.to_datetime(uploaded_df['Date']).dt.strftime('%Y-%m')
+    
+    # Convert Date to datetime
+    uploaded_df['Date'] = pd.to_datetime(uploaded_df['Date'])
+    
+    # Create different time period groupings
+    uploaded_df['Year'] = uploaded_df['Date'].dt.year
+    uploaded_df['Year_Month'] = uploaded_df['Date'].dt.strftime('%Y-%m')
+    # Use the start of each week for the week period
+    uploaded_df['Year_Week'] = uploaded_df['Date'].dt.strftime('%Y-%m-%d')  # Store full date for weekly view
+    
+    # Set the time period column based on selection
+    if time_period == 'year':
+        uploaded_df['Time_Period'] = uploaded_df['Year'].astype(str)
+    elif time_period == 'week':
+        # Group by the start of each week
+        uploaded_df['Time_Period'] = uploaded_df['Date'].dt.to_period('W-MON').dt.start_time.dt.strftime('%Y-%m-%d')
+    else:  # month
+        uploaded_df['Time_Period'] = uploaded_df['Year_Month']
 
     # Map categories to higher level categories if the checkbox is checked
     if 'Higher_Category' in use_higher_category:
@@ -121,14 +155,15 @@ def load_and_process_data(contents, use_higher_category):
      Input('higher-category-checkbox', 'value'),
      Input('year-dropdown', 'value'),
      Input('category-filter', 'value'),
-     Input('currency-selector', 'value')]
+     Input('currency-selector', 'value'),
+     Input('time-period-selector', 'value')]
 )
-def update_uploaded_file(contents, use_higher_category, selected_years, selected_categories, selected_currency):
+def update_uploaded_file(contents, use_higher_category, selected_years, selected_categories, selected_currency, time_period):
     if contents is None:
-        return px.bar(), px.line(), f"Total Spent: {currency_symbols[selected_currency]}0", f"Average per Month: {currency_symbols[selected_currency]}0", [], [], [], []
+        return px.bar(), px.line(), f"Total Spent: {currency_symbols[selected_currency]}0", f"Average per Period: {currency_symbols[selected_currency]}0", [], [], [], []
 
     global uploaded_df
-    load_and_process_data(contents, use_higher_category)
+    load_and_process_data(contents, use_higher_category, time_period)
 
     # Extract years and set dropdown options
     uploaded_df['Year'] = pd.to_datetime(uploaded_df['Date']).dt.year
@@ -143,9 +178,12 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
     all_categories = sorted(uploaded_df['Category'].unique())
     category_options = [{'label': cat, 'value': cat} for cat in all_categories]
     
-    # Always select all categories if none are selected
-    if selected_categories is None or len(selected_categories) == 0:
+    # Always select all categories if none are selected OR if higher-level category checkbox was just changed
+    if selected_categories is None or len(selected_categories) == 0 or use_higher_category != getattr(update_uploaded_file, 'last_use_higher_category', None):
         selected_categories = all_categories
+    
+    # Store the current state of use_higher_category for next comparison
+    update_uploaded_file.last_use_higher_category = use_higher_category
 
     # Filter data based on selected years and categories
     filtered_df = uploaded_df.copy()
@@ -161,28 +199,38 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
     # Update the currency symbol in displays
     currency_symbol = currency_symbols[selected_currency]
 
-    # Calculate total spent and average per month
+    # Calculate total spent and average per period
     total_spent = filtered_df['Amount'].sum()
-    num_months = len(filtered_df['Year_Month'].unique())
-    avg_per_month = total_spent / num_months if num_months > 0 else 0
+    num_periods = len(filtered_df['Time_Period'].unique())
+    avg_per_period = total_spent / num_periods if num_periods > 0 else 0
 
-    # Create line chart for monthly totals with text annotations
-    monthly_totals = filtered_df.groupby('Year_Month')['Amount'].sum().reset_index()
-    monthly_totals['Year_Month'] = pd.to_datetime(monthly_totals['Year_Month'])
-    monthly_totals['Amount'] = monthly_totals['Amount'].round(0)  # Round to whole numbers
+    period_label = 'Year' if time_period == 'year' else 'Month' if time_period == 'month' else 'Week'
+
+    # Create line chart for period totals
+    period_totals = filtered_df.groupby('Time_Period')['Amount'].sum().reset_index()
+    
+    # Convert Time_Period to datetime with appropriate format
+    if time_period == 'year':
+        period_totals['Time_Period'] = pd.to_datetime(period_totals['Time_Period'], format='%Y')
+    elif time_period == 'week':
+        period_totals['Time_Period'] = pd.to_datetime(period_totals['Time_Period'])
+    else:  # month
+        period_totals['Time_Period'] = pd.to_datetime(period_totals['Time_Period'], format='%Y-%m')
+    
+    period_totals['Amount'] = period_totals['Amount'].round(0)
     
     line_fig = px.line(
-        monthly_totals,
-        x='Year_Month',
+        period_totals,
+        x='Time_Period',
         y='Amount',
-        title='Monthly Total Expense',
-        labels={'Amount': 'Total Expense', 'Year_Month': 'Month'}
+        title=f'{period_label}ly Total Expense',
+        labels={'Amount': 'Total Expense', 'Time_Period': period_label}
     )
     
     # Add text annotations above each point with rounded numbers
     line_fig.update_traces(
         mode='lines+markers+text',
-        text=monthly_totals['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}'),  # Remove decimals
+        text=period_totals['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}'),  # Remove decimals
         textposition='top center'
     )
     
@@ -192,24 +240,23 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
         paper_bgcolor='rgba(0, 0, 0, 0)',
     )
 
-    # Group by month and category for bar chart
-    grouped_df = filtered_df[['Year_Month', 'Category', 'Amount']].groupby(['Year_Month', 'Category'], as_index=False).sum()
-    grouped_df['Amount'] = grouped_df['Amount'].round(0)  # Round to whole numbers
-    unique_months = sorted(filtered_df['Year_Month'].unique())
-    color_scale = px.colors.cyclical.mygbm
+    # Group by period and category for bar chart
+    grouped_df = filtered_df[['Time_Period', 'Category', 'Amount']].groupby(['Time_Period', 'Category'], as_index=False).sum()
+    grouped_df['Amount'] = grouped_df['Amount'].round(0)
+    unique_periods = sorted(filtered_df['Time_Period'].unique())
 
     bar_fig = px.bar(
         grouped_df,
-        x='Year_Month',
+        x='Time_Period',
         y='Amount',
         color='Category',
         barmode='stack',
         labels={'Amount': 'Expense Amount'},
-        title='Monthly Expense by Category',
-        category_orders={'Year_Month': unique_months},
-        color_continuous_scale=color_scale,
+        title=f'{period_label}ly Expense by Category',
+        category_orders={'Time_Period': unique_periods},
+        color_continuous_scale=px.colors.cyclical.mygbm,
         text=grouped_df['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}'),  # Remove decimals
-        hover_data=['Year_Month'],
+        hover_data=['Time_Period'],
     )
 
     bar_fig.update_layout(
@@ -222,7 +269,7 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
         bar_fig, 
         line_fig, 
         f"Total Spent: {currency_symbol}{total_spent:,.2f}",
-        f"Average per Month: {currency_symbol}{avg_per_month:,.2f}", 
+        f"Average per {period_label}: {currency_symbol}{avg_per_period:,.2f}", 
         year_options, 
         selected_years, 
         category_options, 
@@ -233,9 +280,10 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
 @app.callback(
     Output('expense-table', 'children'),
     [Input('expense-bar-chart', 'clickData'),
-     Input('currency-selector', 'value')]
+     Input('currency-selector', 'value'),
+     Input('time-period-selector', 'value')]
 )
-def update_table(selected_data, selected_currency):
+def update_table(selected_data, selected_currency, time_period):
     if selected_data is None:
         return []
 
@@ -244,49 +292,94 @@ def update_table(selected_data, selected_currency):
 
     if selected_data and 'points' in selected_data:
         point = selected_data['points'][0]
-        date = point['label']
-        date_object = datetime.strptime(date, '%Y-%m-%d')
-        year_month = date_object.strftime('%Y-%m')
-        clicked_amount = round(float(point['value']))  # Round the clicked amount
+        clicked_amount = round(float(point['value']))
+        selected_period = point['x']
+        
+        logger.debug(f"Click data - Period: {selected_period}, Amount: {clicked_amount}")
+        logger.debug(f"Time period type: {time_period}")
 
-        # Apply currency conversion to the filtered dataframe
+        # Apply currency conversion
         conversion_rate = currency_rates[selected_currency]
-        filtered_df['Amount'] = (filtered_df['Amount'] * conversion_rate).round(0)  # Round after conversion
+        filtered_df['Amount'] = (filtered_df['Amount'] * conversion_rate).round(0)
 
-        # Group by month and category and aggregate the amount
-        grouped_df = filtered_df[['Year_Month', 'Category', 'Amount']].groupby(['Year_Month', 'Category'], as_index=False).sum()
-        grouped_df['Amount'] = grouped_df['Amount'].round(0)  # Round aggregated amounts
+        # Convert selected_period to match the format in filtered_df
+        try:
+            if time_period == 'year':
+                selected_period = str(pd.to_datetime(selected_period).year)
+            elif time_period == 'month':
+                selected_period = pd.to_datetime(selected_period).strftime('%Y-%m')
+            elif time_period == 'week':
+                selected_period = pd.to_datetime(selected_period).strftime('%Y-%m-%d')
+            
+            logger.debug(f"Converted selected period: {selected_period}")
+            
+            # Log unique Time_Period values in filtered_df
+            unique_periods = filtered_df['Time_Period'].unique()
+            logger.debug(f"Available periods in data: {unique_periods}")
+            
+        except Exception as e:
+            logger.error(f"Error converting period: {e}")
+            return []
 
-        # Find the category based on the selected month and approximate amount match
-        # Increased tolerance to 2 units to account for rounding differences
-        mask = (grouped_df['Year_Month'] == year_month) & (abs(grouped_df['Amount'] - clicked_amount) <= 2)
-        if len(grouped_df[mask]) > 0:
-            category = grouped_df[mask]['Category'].values[0]
-            filtered_df = filtered_df[(filtered_df['Year_Month'] == year_month) & (filtered_df['Category'] == category)]
+        # Filter by time period and category
+        grouped_df = filtered_df.groupby(['Time_Period', 'Category'])['Amount'].sum().reset_index()
+        
+        # Log the grouped data
+        logger.debug(f"Grouped data sample:\n{grouped_df.head()}")
+        
+        # Increase tolerance for amount matching and log the matches
+        tolerance = 5  # Increased from 2 to 5
+        mask = (grouped_df['Time_Period'] == selected_period) & (abs(grouped_df['Amount'] - clicked_amount) <= tolerance)
+        matching_rows = grouped_df[mask]
+        
+        logger.debug(f"Matching rows found: {len(matching_rows)}")
+        if len(matching_rows) > 0:
+            logger.debug(f"Matching data:\n{matching_rows}")
+            
+        if len(matching_rows) > 0:
+            category = matching_rows['Category'].values[0]
+            filtered_df = filtered_df[
+                (filtered_df['Time_Period'] == selected_period) & 
+                (filtered_df['Category'] == category)
+            ]
+            logger.debug(f"Found matching category: {category}")
+            logger.debug(f"Number of matching transactions: {len(filtered_df)}")
         else:
-            # Fallback: try finding the closest amount for that month and category
-            month_data = grouped_df[grouped_df['Year_Month'] == year_month]
-            if not month_data.empty:
-                closest_amount = month_data.iloc[(month_data['Amount'] - clicked_amount).abs().argsort()[:1]]
-                category = closest_amount['Category'].values[0]
-                filtered_df = filtered_df[(filtered_df['Year_Month'] == year_month) & 
-                                       (filtered_df['Category'] == category)]
+            logger.debug("No matches found with current tolerance")
+            # Try finding the closest match
+            closest_match = grouped_df[grouped_df['Time_Period'] == selected_period]
+            if not closest_match.empty:
+                closest_match['diff'] = abs(closest_match['Amount'] - clicked_amount)
+                closest_match = closest_match.nsmallest(1, 'diff')
+                logger.debug(f"Closest match:\n{closest_match}")
+                category = closest_match['Category'].values[0]
+                filtered_df = filtered_df[
+                    (filtered_df['Time_Period'] == selected_period) & 
+                    (filtered_df['Category'] == category)
+                ]
+                logger.debug(f"Using closest match category: {category}")
             else:
+                logger.debug("No matches found at all")
                 return []
 
-    # Sort by Amount in descending order
-    filtered_df = filtered_df.sort_values(by='Amount', ascending=False)
+    # Sort by Amount in descending order and limit to top 100
+    filtered_df = filtered_df.sort_values(by='Amount', ascending=False).head(100)
     
     # Format amounts with currency symbol
     currency_symbol = currency_symbols[selected_currency]
     filtered_df['Amount'] = filtered_df['Amount'].apply(lambda x: f"{currency_symbol}{int(x):,}")
 
-    # Display only relevant columns in the table
+    # Format date to be more readable
+    filtered_df['Date'] = pd.to_datetime(filtered_df['Date']).dt.strftime('%Y-%m-%d')
+
+    # Log final table size
+    logger.debug(f"Final table size: {len(filtered_df)} rows")
+
+    # Create table
     table_columns = ['Date', 'Category', 'Description', 'Amount']
     table_rows = [html.Tr([html.Th(col) for col in table_columns])]
-
-    for i in range(len(filtered_df)):
-        table_rows.append(html.Tr([html.Td(filtered_df.iloc[i][col]) for col in table_columns]))
+    table_rows.extend([html.Tr([html.Td(filtered_df.iloc[i][col]) for col in table_columns]) 
+                      for i in range(len(filtered_df))])
 
     return table_rows
 
