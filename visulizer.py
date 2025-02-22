@@ -50,64 +50,178 @@ currency_symbols = {
     'RMB': '¥'
 }
 
+# Add these style constants at the top of the file after imports
+COLORS = {
+    'background': '#FFFFFF',
+    'text': '#2C3E50',
+    'primary': '#3498DB',
+    'secondary': '#E5E7E9'
+}
+
+CHART_STYLE = {
+    'font_family': 'Helvetica',
+    'title_font_size': 24,
+    'axis_font_size': 14,
+    'label_font_size': 12,
+    'table_font_size': 16  # Added new table font size
+}
+
+# Common styles for components
+DROPDOWN_STYLE = {
+    'backgroundColor': COLORS['background'],
+    'color': COLORS['text'],
+    'border': f'1px solid {COLORS["secondary"]}',
+    'borderRadius': '4px',
+    'marginBottom': '10px',
+    'width': '100%'
+}
+
+CONTAINER_STYLE = {
+    'maxWidth': '1800px',
+    'margin': '0 auto',
+    'padding': '20px',
+    'backgroundColor': COLORS['background']
+}
+
 # Layout of the dashboard
 app.layout = html.Div([
-    html.H1("Monthly Expense Dashboard"),
-
-    dcc.Upload(
-        id='upload-data',
-        children=html.Button('Upload File'),
-        multiple=False
+    html.H1("Expense Dashboard", 
+        style={
+            'textAlign': 'center',
+            'color': COLORS['text'],
+            'fontFamily': CHART_STYLE['font_family'],
+            'fontSize': '32px',
+            'marginBottom': '30px'
+        }
     ),
 
     html.Div([
-        # Add time period selector
-        dcc.RadioItems(
-            id='time-period-selector',
-            options=[
-                {'label': 'Yearly', 'value': 'year'},
-                {'label': 'Monthly', 'value': 'month'},
-                {'label': 'Weekly', 'value': 'week'}
-            ],
-            value='month',
-            inline=True,
-            style={'marginBottom': 10}
+        # Controls container - made narrower
+        html.Div([
+            dcc.Upload(
+                id='upload-data',
+                children=html.Button('Upload File', 
+                    style={
+                        'backgroundColor': COLORS['primary'],
+                        'color': 'white',
+                        'border': 'none',
+                        'padding': '10px 20px',
+                        'borderRadius': '4px',
+                        'cursor': 'pointer'
+                    }
+                ),
+                multiple=False,
+                style={'marginBottom': '20px'}
+            ),
+
+            dcc.RadioItems(
+                id='time-period-selector',
+                options=[
+                    {'label': 'Yearly', 'value': 'year'},
+                    {'label': 'Monthly', 'value': 'month'},
+                    {'label': 'Weekly', 'value': 'week'}
+                ],
+                value='month',
+                inline=True,
+                style={
+                    'marginBottom': '20px',
+                    'fontFamily': CHART_STYLE['font_family'],
+                    'fontSize': CHART_STYLE['label_font_size']
+                }
+            ),
+
+            dcc.Dropdown(
+                id='year-dropdown',
+                multi=True,
+                placeholder='Select Year(s)',
+                style=DROPDOWN_STYLE
+            ),
+
+            dcc.Dropdown(
+                id='category-filter',
+                multi=True,
+                placeholder='Select Categories',
+                style=DROPDOWN_STYLE
+            ),
+
+            dcc.Dropdown(
+                id='currency-selector',
+                options=[
+                    {'label': 'GBP (£)', 'value': 'GBP'},
+                    {'label': 'USD ($)', 'value': 'USD'},
+                    {'label': 'RMB (¥)', 'value': 'RMB'}
+                ],
+                value='GBP',
+                clearable=False,
+                style=DROPDOWN_STYLE
+            ),
+
+            dcc.Checklist(
+                id='higher-category-checkbox',
+                options=[{'label': 'Enable Higher Level Category', 'value': 'Higher_Category'}],
+                value=['Higher_Category'],
+                style={
+                    'marginTop': '20px',
+                    'fontFamily': CHART_STYLE['font_family'],
+                    'fontSize': CHART_STYLE['label_font_size']
+                }
+            ),
+        ], style={'flex': '0.2', 'marginRight': '20px'}),
+
+        # Summary container - made wider
+        html.Div([
+            html.Div(
+                id='total-spent',
+                style={
+                    'fontSize': '24px',
+                    'fontWeight': 'bold',
+                    'marginBottom': '10px',
+                    'color': COLORS['text'],
+                    'fontFamily': CHART_STYLE['font_family']
+                }
+            ),
+            html.Div(
+                id='average-spent',
+                style={
+                    'fontSize': '24px',
+                    'fontWeight': 'bold',
+                    'marginBottom': '20px',
+                    'color': COLORS['text'],
+                    'fontFamily': CHART_STYLE['font_family']
+                }
+            ),
+        ], style={'flex': '0.8'})
+    ], style={'display': 'flex', 'marginBottom': '30px'}),
+
+    # Charts container - updated heights and layout
+    html.Div([
+        dcc.Graph(
+            id='expense-line-chart',
+            style={'height': '500px', 'marginBottom': '30px'}
         ),
-        dcc.Dropdown(
-            id='year-dropdown',
-            multi=True,
-            placeholder='Select Year(s)'
+        dcc.Graph(
+            id='expense-bar-chart',
+            style={'height': '700px', 'marginBottom': '30px'}
         ),
-        dcc.Dropdown(
-            id='category-filter',
-            multi=True,
-            placeholder='Select Categories',
-            clearable=True
-        ),
-    ], style={'marginBottom': 20}),
+    ]),
 
-    dcc.Dropdown(
-        id='currency-selector',
-        options=[
-            {'label': 'GBP (£)', 'value': 'GBP'},
-            {'label': 'USD ($)', 'value': 'USD'},
-            {'label': 'RMB (¥)', 'value': 'RMB'}
-        ],
-        value='GBP',
-        clearable=False,
-        style={'marginBottom': 10}
-    ),
-
-    dcc.Checklist(id='higher-category-checkbox', options=[{'label': 'Enable Higher Level Category', 'value': 'Higher_Category'}], value=['Higher_Category']),
-
-    html.Div(id='total-spent', style={'fontSize': 20, 'fontWeight': 'bold', 'marginTop': 20, 'marginBottom': 10}),
-    html.Div(id='average-spent', style={'fontSize': 20, 'fontWeight': 'bold', 'marginBottom': 20}),
-
-    dcc.Graph(id='expense-line-chart', style={'height': '400px'}),
-    dcc.Graph(id='expense-bar-chart', style={'height': '800px'}),
-
-    html.Table(id='expense-table')
-])
+    # Table container - updated font size
+    html.Div([
+        html.Table(
+            id='expense-table',
+            style={
+                'width': '100%',
+                'borderCollapse': 'collapse',
+                'fontFamily': CHART_STYLE['font_family'],
+                'fontSize': CHART_STYLE['table_font_size']  # Updated font size
+            }
+        )
+    ], style={
+        'maxHeight': '500px',
+        'overflowY': 'auto',
+        'marginTop': '20px'
+    })
+], style=CONTAINER_STYLE)
 
 # Function to load and process the data
 def load_and_process_data(contents, use_higher_category, time_period):
@@ -227,17 +341,24 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
         labels={'Amount': 'Total Expense', 'Time_Period': period_label}
     )
     
-    # Add text annotations above each point with rounded numbers
     line_fig.update_traces(
         mode='lines+markers+text',
-        text=period_totals['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}'),  # Remove decimals
-        textposition='top center'
+        text=period_totals['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}'),
+        textposition='top center',
+        line=dict(width=3),
+        marker=dict(size=8)
     )
     
     line_fig.update_layout(
-        template='seaborn',
-        plot_bgcolor='rgba(0, 0, 0, 0)',
-        paper_bgcolor='rgba(0, 0, 0, 0)',
+        font_family=CHART_STYLE['font_family'],
+        title_font_size=CHART_STYLE['title_font_size'],
+        font_size=CHART_STYLE['axis_font_size'],
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        xaxis=dict(showgrid=True, gridwidth=1, gridcolor=COLORS['secondary']),
+        yaxis=dict(showgrid=True, gridwidth=1, gridcolor=COLORS['secondary']),
+        margin=dict(l=50, r=50, t=50, b=50),
+        height=500
     )
 
     # Group by period and category for bar chart
@@ -254,15 +375,27 @@ def update_uploaded_file(contents, use_higher_category, selected_years, selected
         labels={'Amount': 'Expense Amount'},
         title=f'{period_label}ly Expense by Category',
         category_orders={'Time_Period': unique_periods},
-        color_continuous_scale=px.colors.cyclical.mygbm,
-        text=grouped_df['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}'),  # Remove decimals
-        hover_data=['Time_Period'],
+        text=grouped_df['Amount'].apply(lambda x: f'{currency_symbol}{int(x):,}')
     )
 
     bar_fig.update_layout(
-        template='seaborn',
-        plot_bgcolor='rgba(0, 0, 0, 0)',
-        paper_bgcolor='rgba(0, 0, 0, 0)',
+        font_family=CHART_STYLE['font_family'],
+        title_font_size=CHART_STYLE['title_font_size'],
+        font_size=CHART_STYLE['axis_font_size'],
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        xaxis=dict(showgrid=True, gridwidth=1, gridcolor=COLORS['secondary']),
+        yaxis=dict(showgrid=True, gridwidth=1, gridcolor=COLORS['secondary']),
+        margin=dict(l=50, r=50, t=80, b=50),
+        height=700,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=12)
+        )
     )
 
     return (
@@ -375,11 +508,32 @@ def update_table(selected_data, selected_currency, time_period):
     # Log final table size
     logger.debug(f"Final table size: {len(filtered_df)} rows")
 
-    # Create table
+    # Create table with larger text
     table_columns = ['Date', 'Category', 'Description', 'Amount']
-    table_rows = [html.Tr([html.Th(col) for col in table_columns])]
-    table_rows.extend([html.Tr([html.Td(filtered_df.iloc[i][col]) for col in table_columns]) 
-                      for i in range(len(filtered_df))])
+    table_rows = [html.Tr([
+        html.Th(col, style={
+            'backgroundColor': COLORS['secondary'],
+            'padding': '15px',  # Increased padding
+            'textAlign': 'left',
+            'color': COLORS['text'],
+            'fontSize': f"{CHART_STYLE['table_font_size']}px",  # Explicit font size
+            'fontWeight': 'bold'
+        }) for col in table_columns
+    ])]
+
+    table_rows.extend([
+        html.Tr([
+            html.Td(
+                filtered_df.iloc[i][col],
+                style={
+                    'padding': '12px',  # Increased padding
+                    'borderBottom': f'1px solid {COLORS["secondary"]}',
+                    'fontSize': f"{CHART_STYLE['table_font_size']}px",  # Explicit font size
+                    'whiteSpace': 'nowrap'  # Prevent text wrapping
+                }
+            ) for col in table_columns
+        ]) for i in range(len(filtered_df))
+    ])
 
     return table_rows
 
