@@ -1,7 +1,7 @@
 import pandas as pd
 import base64
 import io
-from .constants import CATEGORY_MAPPING
+from .constants import CATEGORY_MAPPING, CURRENCY_RATES
 
 def load_and_process_data(contents, use_higher_category, time_period):
     """Process uploaded data file and return formatted DataFrame"""
@@ -13,9 +13,13 @@ def load_and_process_data(contents, use_higher_category, time_period):
 
 def process_dataframe(df, use_higher_category, time_period):
     """Process DataFrame with time periods and categories"""
-    df = df[['Date', 'Description', 'Category', 'Final_Amount']].copy()
-    df = df.rename(columns={'Final_Amount': 'Amount'})
+    # Use Amount instead of Final_Amount and include Currency column
+    df = df[['Date', 'Description', 'Category', 'Amount', 'Currency']].copy()
+    
+    # Convert Amount to GBP based on currency rates
+    df['Amount'] = df.apply(lambda row: row['Amount'] / CURRENCY_RATES[row['Currency']], axis=1)
     df['Amount'] = df['Amount'].round(2)
+    
     df['Date'] = pd.to_datetime(df['Date'])
     
     # Add time period columns
