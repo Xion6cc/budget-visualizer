@@ -26,6 +26,10 @@ categories = {
     'Miscellaneous': (10, 100)
 }
 
+# Currency distribution weights
+currencies = ['GBP', 'USD', 'RMB']
+currency_weights = [0.6, 0.3, 0.1]  # 60% GBP, 30% USD, 10% RMB
+
 # Generate dates from 2022 to 2024
 start_date = datetime(2022, 1, 1)
 end_date = datetime(2024, 12, 31)
@@ -45,8 +49,19 @@ for date in dates:
     category = np.random.choice(list(categories.keys()))
     min_amount, max_amount = categories[category]
     
-    # Generate amount with some randomness
-    amount = round(np.random.uniform(min_amount, max_amount), 2)
+    # Select currency and adjust amount based on currency
+    currency = np.random.choice(currencies, p=currency_weights)
+    
+    # Generate base amount in GBP
+    base_amount = round(np.random.uniform(min_amount, max_amount), 2)
+    
+    # Convert amount based on currency
+    if currency == 'USD':
+        amount = round(base_amount * 1.25, 2)  # GBP to USD rate
+    elif currency == 'RMB':
+        amount = round(base_amount * 9.2, 2)   # GBP to RMB rate
+    else:  # GBP
+        amount = base_amount
     
     # Generate description based on category
     descriptions = {
@@ -73,7 +88,8 @@ for date in dates:
         'Date': date.strftime('%Y-%m-%d'),
         'Category': category,
         'Description': description,
-        'Final_Amount': amount
+        'Amount': amount,
+        'Currency': currency
     })
 
 # Convert to DataFrame and sort by date
@@ -86,6 +102,11 @@ with open('dummy_transactions.json', 'w') as f:
         f.write(json.dumps(dict(row)) + '\n')
 
 print(f"Generated {len(df)} transactions from {start_date.date()} to {end_date.date()}")
-print(f"Total amount: £{df['Final_Amount'].sum():,.2f}")
+print(f"Total amount in mixed currencies:")
+for curr in currencies:
+    curr_total = df[df['Currency'] == curr]['Amount'].sum()
+    print(f"{curr}: {curr_total:,.2f}")
 print("\nCategory distribution:")
-print(df['Category'].value_counts()) 
+print(df['Category'].value_counts())
+print("\nCurrency distribution:")
+print(df['Currency'].value_counts(normalize=True)) 
