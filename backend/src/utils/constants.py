@@ -23,7 +23,7 @@ CURRENCY_RATES = {
     'USD': 1.25,
     'RMB': 9.2
 }
-
+# Currency symbols for display
 CURRENCY_SYMBOLS = {
     'GBP': '£',
     'USD': '$',
