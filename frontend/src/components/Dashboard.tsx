@@ -9,7 +9,6 @@ import {
   Container
 } from '@mui/material';
 import { BarChart } from './BarChart';
-import { LineChart } from './LineChart';
 import { Controls } from './Controls';
 import { ExpenseDetails } from './ExpenseDetails';
 import { useExpenseData } from '../hooks/useExpenseData';
@@ -63,13 +62,13 @@ export const Dashboard: React.FC = () => {
 
   // Calculate summary statistics when data changes
   useEffect(() => {
-    if (data?.lineChartData?.length) {
-      const total = data.lineChartData.reduce((sum, item) => sum + item.amount, 0);
-      const average = total / data.lineChartData.length;
+    if (data?.barChartData?.length) {
+      const total = data.barChartData.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      const average = total / data.barChartData.length;
       
       setTotalSpent(total);
       setAveragePerPeriod(average);
-      setPeriodCount(data.lineChartData.length);
+      setPeriodCount(data.barChartData.length);
     }
   }, [data]);
 
@@ -119,16 +118,6 @@ export const Dashboard: React.FC = () => {
             <Grid item xs={12}>
               <Paper sx={{ p: 4, textAlign: 'center' }}>
                 <Typography variant="h6">Upload a file to get started</Typography>
-              </Paper>
-            </Grid>
-          )}
-
-          {/* LINE CHART AT THE TOP */}
-          {data && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 2, mb: 3 }}>
-                <Typography variant="h6" gutterBottom>Total Expenses Over Time</Typography>
-                <LineChart data={data.lineChartData} />
               </Paper>
             </Grid>
           )}

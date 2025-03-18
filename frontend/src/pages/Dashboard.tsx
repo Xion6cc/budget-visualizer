@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Grid, Paper, Alert, CircularProgress, Stack, Typography } from '@mui/material';
 import { Controls } from '../components/Controls';
 import { BarChart } from '../components/BarChart';
-import { LineChart } from '../components/LineChart';
 import { ExpenseTable } from '../components/ExpenseTable';
 import { useExpenseData } from '../hooks/useExpenseData';
 
@@ -26,10 +25,10 @@ export const Dashboard: React.FC = () => {
   };
 
   const calculateSummary = () => {
-    if (!data?.lineChartData) return { total: 0, average: 0 };
+    if (!data?.barChartData) return { total: 0, average: 0 };
     
-    const total = data.lineChartData.reduce((sum, item) => sum + item.amount, 0);
-    const average = total / data.lineChartData.length;
+    const total = data.barChartData.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const average = total / (data.barChartData.length || 1);
     
     return { total, average };
   };
@@ -92,7 +91,7 @@ export const Dashboard: React.FC = () => {
                     {formatCurrency(average)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Based on {data.lineChartData.length} periods
+                    Based on {data.barChartData.length} periods
                   </Typography>
                 </Paper>
               </Grid>
@@ -102,10 +101,6 @@ export const Dashboard: React.FC = () => {
               <BarChart data={data.barChartData} onBarClick={handleBarClick} />
             </Paper>
             
-            <Paper elevation={1} sx={{ p: 3 }}>
-              <LineChart data={data.lineChartData} />
-            </Paper>
-
             {selectedDetail && (
               <Paper elevation={1} sx={{ p: 3 }}>
                 <ExpenseTable data={selectedDetail} />

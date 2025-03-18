@@ -19,11 +19,6 @@ export interface ChartData {
   Category: string;
 }
 
-export interface LineChartData {
-  Time_Period: string;
-  Amount: number;
-}
-
 export interface SummaryData {
   total_spent: number;
   average_spent: number;
@@ -31,7 +26,6 @@ export interface SummaryData {
 }
 
 export interface ApiResponse {
-  line_chart: LineChartData[];
   bar_chart: ChartData[];
   summary: SummaryData;
 } 

@@ -18,7 +18,6 @@ export interface ChartDataPoint {
 
 export interface ExpenseData {
   barChartData: ChartDataPoint[];
-  lineChartData: ChartDataPoint[];
 }
 
 export interface ExpenseDetail {

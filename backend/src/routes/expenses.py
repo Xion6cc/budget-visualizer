@@ -76,7 +76,7 @@ async def get_expenses(
 ):
     global _stored_data, _original_data
     if _original_data is None:
-        return {"barChartData": [], "lineChartData": []}
+        return {"barChartData": []}
 
     try:
         # Start with original data
@@ -125,25 +125,9 @@ async def get_expenses(
             for _, row in bar_data.iterrows()
         ]
 
-        # Group by time period for line chart
-        line_data = processed_df.groupby('Time_Period')['Amount'].sum().reset_index()
-        
-        # Round amounts to 2 decimal places
-        line_data['Amount'] = line_data['Amount'].round(2)
-        
-        line_chart_data = [
-            {
-                "timePeriod": row['Time_Period'],
-                "amount": float(row['Amount']),
-                "category": "Total"
-            }
-            for _, row in line_data.iterrows()
-        ]
-
-        print(f"Returning data with {len(bar_chart_data)} bar chart points and {len(line_chart_data)} line chart points")
+        print(f"Returning data with {len(bar_chart_data)} bar chart points")
         return {
-            "barChartData": bar_chart_data,
-            "lineChartData": line_chart_data
+            "barChartData": bar_chart_data
         }
     except Exception as e:
         print(f"Error processing expense data: {str(e)}")
