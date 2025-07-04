@@ -101,14 +101,19 @@ export const Dashboard: React.FC = () => {
             <Paper elevation={1} sx={{ p: 3 }}>
               <BarChart data={data.barChartData} onBarClick={handleBarClick} />
             </Paper>
-            
-            <Paper elevation={1} sx={{ p: 3 }}>
-              <LineChart data={data.lineChartData} />
-            </Paper>
 
-            {selectedDetail && (
+            {selectedDetail ? (
+              <>
+                <Paper elevation={1} sx={{ p: 3 }}>
+                  <ExpenseTable data={selectedDetail} />
+                </Paper>
+                <Paper elevation={1} sx={{ p: 3 }}>
+                  <LineChart data={data.lineChartData} />
+                </Paper>
+              </>
+            ) : (
               <Paper elevation={1} sx={{ p: 3 }}>
-                <ExpenseTable data={selectedDetail} />
+                <LineChart data={data.lineChartData} />
               </Paper>
             )}
           </Stack>
