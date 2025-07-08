@@ -16,6 +16,8 @@ import { ChartDataPoint } from '../api/client';
 interface BarChartProps {
   data: ChartDataPoint[];
   onBarClick?: (category: string, timePeriod: string) => void;
+  overlayLabel?: string;
+  mode?: 'latest' | 'trend'; // optional, auto-detect if not provided
 }
 
 const COLORS = [
@@ -49,81 +51,55 @@ const CustomBar = (props: any) => {
   );
 };
 
-export const BarChart: React.FC<BarChartProps> = ({ data, onBarClick }) => {
-  // Group data by time period
-  const timePeriodsSet = new Set(data.map(item => item.timePeriod));
-  const timePeriods = Array.from(timePeriodsSet).sort();
-  
-  // Group data by category
-  const categoriesSet = new Set(data.map(item => item.category));
-  const categories = Array.from(categoriesSet);
-  
-  // Create data structure for stacked bar chart
-  const chartData = timePeriods.map(period => {
-    const periodData = data.filter(item => item.timePeriod === period);
-    const result: any = { timePeriod: period };
-    
-    periodData.forEach(item => {
-      result[item.category] = item.amount;
+export const BarChart: React.FC<BarChartProps> = ({ data, onBarClick, overlayLabel, mode }) => {
+  // Auto-detect mode if not provided
+  let chartMode: 'latest' | 'trend' = mode || 'latest';
+  // If there are multiple time periods, use trend mode
+  const uniquePeriods = Array.from(new Set(data.map(d => d.timePeriod)));
+  if (!mode && uniquePeriods.length > 1) chartMode = 'trend';
+
+  if (chartMode === 'trend') {
+    // Group data by time period, stack by category
+    const periods = uniquePeriods.sort();
+    const categories = Array.from(new Set(data.map(d => d.category)));
+    // Build chartData: [{ timePeriod, [category]: amount, ... }]
+    const chartData = periods.map(period => {
+      const row: any = { timePeriod: period };
+      categories.forEach(cat => {
+        const found = data.find(d => d.timePeriod === period && d.category === cat);
+        row[cat] = found ? found.amount : 0;
+        if (overlayLabel) row[cat + '_overlay'] = found && 'overlay' in found ? found.overlay : 0;
+      });
+      return row;
     });
-    
-    return result;
-  });
-
-  // Handle click on a specific category segment
-  const handleCategoryClick = (category: string, payload: any) => {
-    if (!onBarClick) return;
-    
-    const timePeriod = payload.timePeriod;
-    console.log(`Clicked on category: ${category}, time period: ${timePeriod}, amount: ${payload[category]}`);
-    
-    onBarClick(category, timePeriod);
-  };
-
-  const formatCurrency = (value: number) => {
-    return `£${value.toFixed(2)}`;
-  };
-
   return (
-    <ResponsiveContainer width="100%" height={400}>
-      {data.length > 0 ? (
-        <RechartsBarChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
+      <ResponsiveContainer width="100%" height={300}>
+        <RechartsBarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
           <XAxis dataKey="timePeriod" />
-          <YAxis tickFormatter={formatCurrency} />
-          <Tooltip 
-            formatter={(value: number, name: string) => [formatCurrency(value), name]}
-            isAnimationActive={false}
-          />
-          <Legend 
-            onClick={(e) => {
-              // Handle legend click to filter by category
-              if (onBarClick && e.dataKey) {
-                console.log(`Legend clicked: ${e.dataKey}`);
-                // We pass empty string as timePeriod to indicate this is a legend click
-                onBarClick(e.dataKey as string, "");
-              }
-            }}
-          />
-          {categories.map((category, index) => (
-            <Bar
-              key={category}
-              dataKey={category}
-              stackId="a"
-              fill={COLORS[index % COLORS.length]}
-              shape={<CustomBar category={category} onClick={handleCategoryClick} />}
-              isAnimationActive={false}
-            />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          {categories.map((cat, idx) => (
+            <Bar key={cat} dataKey={cat} name={cat} stackId="a" fill={COLORS[idx % COLORS.length]} onClick={bar => onBarClick && onBarClick(cat, bar.timePeriod)} />
           ))}
         </RechartsBarChart>
-      ) : (
-        <Typography variant="body1" align="center">
-          No data available
-        </Typography>
+      </ResponsiveContainer>
+    );
+  }
+
+  // If data is for a single period (Latest View), just render one bar per category
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <RechartsBarChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+        <XAxis dataKey="category" />
+        <YAxis />
+        <Tooltip />
+        <Legend />
+        <Bar dataKey="amount" name="Actual" fill="#8884d8" onClick={bar => onBarClick && onBarClick(bar.category, bar.timePeriod)} />
+        {overlayLabel && (
+          <Bar dataKey="overlay" name={overlayLabel} fill="#FFBB28" opacity={0.5} />
       )}
+      </RechartsBarChart>
     </ResponsiveContainer>
   );
 }; 

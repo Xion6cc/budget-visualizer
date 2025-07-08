@@ -1,12 +1,15 @@
-import React from 'react';
-import { Box, Grid, Paper, Alert, CircularProgress, Stack, Typography } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Grid, Paper, Alert, CircularProgress, Stack, Typography, Drawer, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { Controls } from '../components/Controls';
 import { BarChart } from '../components/BarChart';
 import { LineChart } from '../components/LineChart';
 import { ExpenseTable } from '../components/ExpenseTable';
-import { useExpenseData } from '../hooks/useExpenseData';
+import { useExpenseDataContext } from '../context/ExpenseDataContext';
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(true);
   const {
     data,
     loading,
@@ -18,7 +21,7 @@ export const Dashboard: React.FC = () => {
     fetchExpenseDetails,
     availableCategories,
     availableYears,
-  } = useExpenseData();
+  } = useExpenseDataContext();
 
   const handleBarClick = (category: string, timePeriod: string) => {
     console.log('Bar clicked:', { category, timePeriod });
@@ -28,7 +31,7 @@ export const Dashboard: React.FC = () => {
   const calculateSummary = () => {
     if (!data?.lineChartData) return { total: 0, average: 0 };
     
-    const total = data.lineChartData.reduce((sum, item) => sum + item.amount, 0);
+    const total = data.lineChartData.reduce((sum: number, item: { amount: number }) => sum + item.amount, 0);
     const average = total / data.lineChartData.length;
     
     return { total, average };
@@ -99,7 +102,7 @@ export const Dashboard: React.FC = () => {
             </Grid>
 
             <Paper elevation={1} sx={{ p: 3 }}>
-              <BarChart data={data.barChartData} onBarClick={handleBarClick} />
+              <BarChart data={data.barChartData} onBarClick={handleBarClick} mode="trend" />
             </Paper>
 
             {selectedDetail ? (
@@ -119,6 +122,28 @@ export const Dashboard: React.FC = () => {
           </Stack>
         )}
       </Box>
+      
+      {/* Right-side drawer navigation */}
+      <Drawer
+        anchor="right"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        variant="persistent"
+        sx={{ width: 240, flexShrink: 0, '& .MuiDrawer-paper': { width: 240 } }}
+      >
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton selected={window.location.pathname === '/latest'} onClick={() => navigate('/latest')}>
+              <ListItemText primary="Latest View" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton selected={window.location.pathname === '/trend'} onClick={() => navigate('/trend')}>
+              <ListItemText primary="Trend View" />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Drawer>
     </Box>
   );
 }; 

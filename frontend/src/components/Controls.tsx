@@ -51,6 +51,7 @@ interface ControlsProps {
   loading: boolean;
   availableCategories: string[];
   availableYears: number[];
+  hideYear?: boolean;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -60,6 +61,7 @@ export const Controls: React.FC<ControlsProps> = ({
   loading,
   availableCategories,
   availableYears,
+  hideYear,
 }) => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -178,6 +180,9 @@ export const Controls: React.FC<ControlsProps> = ({
 
       <Divider sx={{ my: 3 }} />
 
+      {/* Year selection, only if not hidden */}
+      {!hideYear && (
+        <>
       {/* Years */}
       <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
         Years
@@ -195,6 +200,8 @@ export const Controls: React.FC<ControlsProps> = ({
           </StyledToggleButton>
         ))}
       </Box>
+        </>
+      )}
 
       <Divider sx={{ my: 3 }} />
 
