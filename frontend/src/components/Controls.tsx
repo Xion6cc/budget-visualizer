@@ -106,6 +106,16 @@ export const Controls: React.FC<ControlsProps> = ({
     onFilterChange({ years: updatedYears });
   };
 
+  // Handle select all categories
+  const handleSelectAllCategories = () => {
+    onFilterChange({ categories: availableCategories });
+  };
+
+  // Handle deselect all categories
+  const handleDeselectAllCategories = () => {
+    onFilterChange({ categories: [] });
+  };
+
   return (
     <Paper
       sx={{
@@ -209,6 +219,27 @@ export const Controls: React.FC<ControlsProps> = ({
       <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
         Categories
       </Typography>
+      
+      {/* Select All / Deselect All buttons */}
+      <Box sx={{ mb: 2, display: 'flex', gap: 1 }}>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleSelectAllCategories}
+          sx={{ flex: 1 }}
+        >
+          Select All
+        </Button>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleDeselectAllCategories}
+          sx={{ flex: 1 }}
+        >
+          Deselect All
+        </Button>
+      </Box>
+      
       <FormGroup sx={{ mb: 3 }}>
         {availableCategories.map(category => (
           <CategoryLabel
