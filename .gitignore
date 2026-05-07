@@ -4,9 +4,12 @@
 
 # Ignore all Jupyter Notebook files
 *.ipynb
+table_config.json
 
 # Ignore the category_mapping.json file
 category_mapping.json
+budget.json
+bank_transaction_processor.py
 
 # Ignore Python cache files
 __pycache__/
@@ -15,3 +18,22 @@ __pycache__/
 *.pyd
 
 **/node_modules/
+
+**/processed_transaction/
+**/statements/
+**/get_data/
+
+# Bank/API credentials and OAuth tokens — never commit
+/config/
+
+# Claude Code per-user settings
+.claude/
+
+# Local debug scripts
+data/debug_*.py
+
+# Local server utilities
+kill_server.ps1
+
+# Jupyter checkpoint dirs
+**/.ipynb_checkpoints/

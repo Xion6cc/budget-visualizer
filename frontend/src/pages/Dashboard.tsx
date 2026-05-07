@@ -4,7 +4,7 @@ import { Controls } from '../components/Controls';
 import { BarChart } from '../components/BarChart';
 import { LineChart } from '../components/LineChart';
 import { ExpenseTable } from '../components/ExpenseTable';
-import { useExpenseData } from '../hooks/useExpenseData';
+import { useExpenseDataContext } from '../context/ExpenseDataContext';
 
 export const Dashboard: React.FC = () => {
   const {
@@ -18,7 +18,7 @@ export const Dashboard: React.FC = () => {
     fetchExpenseDetails,
     availableCategories,
     availableYears,
-  } = useExpenseData();
+  } = useExpenseDataContext();
 
   const handleBarClick = (category: string, timePeriod: string) => {
     console.log('Bar clicked:', { category, timePeriod });
@@ -27,16 +27,14 @@ export const Dashboard: React.FC = () => {
 
   const calculateSummary = () => {
     if (!data?.lineChartData) return { total: 0, average: 0 };
-    
-    const total = data.lineChartData.reduce((sum, item) => sum + item.amount, 0);
+    const total = data.lineChartData.reduce((sum: number, item: { amount: number }) => sum + item.amount, 0);
     const average = total / data.lineChartData.length;
-    
     return { total, average };
   };
 
   const formatCurrency = (amount: number) => {
-    const currencySymbol = filters.currency === 'GBP' ? '£' : 
-                          filters.currency === 'USD' ? '$' : 
+    const currencySymbol = filters.currency === 'GBP' ? '£' :
+                          filters.currency === 'USD' ? '$' :
                           filters.currency === 'RMB' ? '¥' : '';
     return `${currencySymbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -53,17 +51,15 @@ export const Dashboard: React.FC = () => {
         availableCategories={availableCategories}
         availableYears={availableYears}
       />
-      
-      <Box sx={{ flexGrow: 1, ml: '280px', p: 2 }}>
+
+      <Box sx={{ flexGrow: 1, p: '28px', ml: '220px' }}>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
+          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
         )}
-        
+
         {loading && (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-            <CircularProgress />
+            <CircularProgress sx={{ color: '#6366f1' }} />
           </Box>
         )}
 
@@ -71,48 +67,52 @@ export const Dashboard: React.FC = () => {
           <Stack spacing={3}>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Paper elevation={1} sx={{ p: 3 }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Paper sx={{ p: 3 }}>
+                  <Typography
+                    sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', mb: 1 }}
+                  >
                     Total Spent
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ fontWeight: 'medium' }}>
+                  <Typography sx={{ fontSize: 36, fontWeight: 700, color: '#0f172a', lineHeight: 1, mb: 0.5 }}>
                     {formatCurrency(total)}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography sx={{ fontSize: 12, color: '#94a3b8' }}>
                     During selected period
                   </Typography>
                 </Paper>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Paper elevation={1} sx={{ p: 3 }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Paper sx={{ p: 3 }}>
+                  <Typography
+                    sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', mb: 1 }}
+                  >
                     Average per {filters.timePeriod}
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ fontWeight: 'medium' }}>
+                  <Typography sx={{ fontSize: 36, fontWeight: 700, color: '#0f172a', lineHeight: 1, mb: 0.5 }}>
                     {formatCurrency(average)}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography sx={{ fontSize: 12, color: '#94a3b8' }}>
                     Based on {data.lineChartData.length} periods
                   </Typography>
                 </Paper>
               </Grid>
             </Grid>
 
-            <Paper elevation={1} sx={{ p: 3 }}>
-              <BarChart data={data.barChartData} onBarClick={handleBarClick} />
+            <Paper sx={{ p: 3 }}>
+              <BarChart data={data.barChartData} onBarClick={handleBarClick} mode="trend" />
             </Paper>
 
             {selectedDetail ? (
               <>
-                <Paper elevation={1} sx={{ p: 3 }}>
+                <Paper sx={{ p: 3 }}>
                   <ExpenseTable data={selectedDetail} />
                 </Paper>
-                <Paper elevation={1} sx={{ p: 3 }}>
+                <Paper sx={{ p: 3 }}>
                   <LineChart data={data.lineChartData} />
                 </Paper>
               </>
             ) : (
-              <Paper elevation={1} sx={{ p: 3 }}>
+              <Paper sx={{ p: 3 }}>
                 <LineChart data={data.lineChartData} />
               </Paper>
             )}
@@ -121,4 +121,4 @@ export const Dashboard: React.FC = () => {
       </Box>
     </Box>
   );
-}; 
+};
