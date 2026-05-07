@@ -6,8 +6,6 @@ import { ExpenseTable } from '../components/ExpenseTable';
 import { useExpenseDataContext } from '../context/ExpenseDataContext';
 import { Controls } from '../components/Controls';
 
-const categories = ["Groceries", "Dining", "Transport", "Utilities", "Entertainment"];
-
 type BarChartDataItem = { category: string; amount: number; timePeriod: string; [key: string]: any };
 type PieChartDataItem = { name: string; value: number };
 
@@ -57,10 +55,7 @@ const LatestView: React.FC = () => {
   const { data, fetchExpenseDetails, selectedDetail, filters, updateFilters, handleFileUpload, availableCategories, availableYears, loading } = useExpenseDataContext();
 
   useEffect(() => {
-    fetchBudgetConfig().then(budgetData => {
-      console.log('Loaded budget config:', budgetData);
-      setBudget(budgetData);
-    });
+    fetchBudgetConfig().then(setBudget);
   }, []);
 
   const latestMonth = data ? getLatestMonth(data) : null;
@@ -71,21 +66,11 @@ const LatestView: React.FC = () => {
   const chartTitle = `${timePeriodLabel} - Bar Chart`;
   const pieTitle = `${timePeriodLabel} - Pie Chart`;
 
-  const latestPeriod = data ? getLatestMonth(data) : null;
-  const selectedPeriod = latestPeriod && data ? data.barChartData.filter((item: BarChartDataItem) => item.timePeriod === latestPeriod) : [];
-  let overlayData: BarChartDataItem[] = selectedPeriod.length > 0
-    ? (showBudget
-        ? selectedPeriod.map((item: BarChartDataItem) => ({ ...item, overlay: budget[item.category] || 0, timePeriod: item.timePeriod }))
-        : selectedPeriod.map((item: BarChartDataItem) => ({ ...item, overlay: historicalAverages[item.category] || 0, timePeriod: item.timePeriod }))
-      )
-    : [];
-  overlayData = overlayData.sort((a: BarChartDataItem, b: BarChartDataItem) => b.amount - a.amount);
-  const pieData = selectedPeriod.length > 0 ? getPieChartData(selectedPeriod) : [];
-
-  console.log('Available categories in data:', data ? Array.from(new Set(data.barChartData.map((item: BarChartDataItem) => item.category))) : []);
-  console.log('Budget config:', budget);
-  console.log('Selected period data:', selectedPeriod);
-  console.log('Overlay data:', overlayData);
+  const overlaySource = showBudget ? budget : historicalAverages;
+  const overlayData: BarChartDataItem[] = categoryData
+    .map((item) => ({ ...item, overlay: overlaySource[item.category] || 0 }))
+    .sort((a, b) => b.amount - a.amount);
+  const pieData = getPieChartData(categoryData);
 
   const handleBarClick = (category: string) => {
     setSelectedCategory(category);

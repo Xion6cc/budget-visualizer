@@ -174,9 +174,6 @@ const BankConnections: React.FC = () => {
 
   useEffect(() => {
     fetchConnections().catch(() => {});
-  }, []);
-
-  useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -192,6 +189,7 @@ const BankConnections: React.FC = () => {
       const initialConn = connections.find(c => c.provider === provider);
       const initialExpiresAt = initialConn?.expires_at ?? null;
 
+      if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(async () => {
         try {
           const res = await axios.get(`${API_BASE_URL}/banks/connections`);

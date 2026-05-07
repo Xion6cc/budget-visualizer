@@ -241,11 +241,20 @@ class FetchRequest(BaseModel):
     providers: Optional[List[str]] = None  # None = all connected banks
 
 
-def _auto_categorize(description: str, processor) -> Optional[str]:
-    for cat, mapping in processor.category_mapping.items():
-        for keyword in mapping.get("contains", []):
-            if keyword.lower() in description.lower():
-                return cat
+def _build_keyword_index(processor) -> List[tuple]:
+    """Pre-lowered (category, keyword) pairs to avoid repeated .lower() per transaction."""
+    return [
+        (cat, kw.lower())
+        for cat, mapping in processor.category_mapping.items()
+        for kw in mapping.get("contains", [])
+    ]
+
+
+def _auto_categorize(description: str, keyword_index: List[tuple]) -> Optional[str]:
+    desc_lower = description.lower()
+    for cat, kw in keyword_index:
+        if kw in desc_lower:
+            return cat
     return None
 
 
@@ -274,6 +283,7 @@ async def fetch_transactions(request: FetchRequest):
 
     config_dir = Path(__file__).parent.parent.parent.parent / "config"
     processor = BankTransactionProcessor(config_dir=str(config_dir))
+    keyword_index = _build_keyword_index(processor)
     all_transactions = []
 
     # ── TrueLayer ────────────────────────────────────────────────────────────
@@ -326,7 +336,7 @@ async def fetch_transactions(request: FetchRequest):
                     "Date": date_str,
                     "Amount": amount,
                     "Description": description,
-                    "Category": _auto_categorize(description, processor),
+                    "Category": _auto_categorize(description, keyword_index),
                     "Currency": currency,
                     "Card": card,
                     "Bank": None,
@@ -367,7 +377,7 @@ async def fetch_transactions(request: FetchRequest):
                 "Date": date_str,
                 "Amount": amount,
                 "Description": description,
-                "Category": _auto_categorize(description, processor),
+                "Category": _auto_categorize(description, keyword_index),
                 "Currency": currency,
                 "Card": card,
                 "Bank": None,

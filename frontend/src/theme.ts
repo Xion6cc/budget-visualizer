@@ -1,13 +1,17 @@
 import { createTheme } from '@mui/material/styles';
 
-const BRAND = '#6366f1';
-const BRAND_LIGHT = '#eef2ff';
-const BRAND_DARK = '#4338ca';
-const BORDER = '#e2e8f0';
-const BG = '#f8fafc';
-const TEXT_PRIMARY = '#0f172a';
-const TEXT_SECONDARY = '#64748b';
-const TEXT_MUTED = '#94a3b8';
+export const BRAND = '#6366f1';
+export const BRAND_LIGHT = '#eef2ff';
+export const BRAND_DARK = '#4338ca';
+export const BORDER = '#e2e8f0';
+export const BG = '#f8fafc';
+export const TEXT_PRIMARY = '#0f172a';
+export const TEXT_SECONDARY = '#64748b';
+export const TEXT_MUTED = '#94a3b8';
+export const DANGER = '#ef4444';
+export const DANGER_BG = '#fef2f2';
+export const SUCCESS = '#10b981';
+export const WARNING = '#f59e0b';
 
 const theme = createTheme({
   palette: {

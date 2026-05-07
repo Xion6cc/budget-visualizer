@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -45,9 +45,7 @@ export const Controls: React.FC<ControlsProps> = ({
   availableYears,
   hideYear,
 }) => {
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files?.[0]) {
@@ -121,14 +119,12 @@ export const Controls: React.FC<ControlsProps> = ({
         {loading ? <CircularProgress size={16} /> : (success ? 'Uploaded ✓' : '↑ Upload file')}
         <input
           type="file"
-          ref={fileInputRef}
           hidden
           accept=".json,.jsonl"
           onChange={handleFileChange}
           onClick={(e) => {
             (e.target as HTMLInputElement).value = '';
             setSuccess(false);
-            setError(null);
           }}
         />
       </Box>
@@ -230,9 +226,6 @@ export const Controls: React.FC<ControlsProps> = ({
         ))}
       </FormGroup>
 
-      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
-        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
-      </Snackbar>
       <Snackbar open={success} autoHideDuration={3000} onClose={() => setSuccess(false)}>
         <Alert severity="success" onClose={() => setSuccess(false)}>File uploaded successfully!</Alert>
       </Snackbar>
