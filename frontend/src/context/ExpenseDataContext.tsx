@@ -60,7 +60,8 @@ export const ExpenseDataProvider: React.FC<{ children: React.ReactNode }> = ({ c
       const response = await uploadFile(file, true, filters.timePeriod);
       setAvailableCategories(response.categories);
       setAvailableYears(response.years);
-      const defaultYears = response.years.filter(year => year === 2024 || year === 2025);
+      const sortedYears = [...response.years].sort((a, b) => b - a);
+      const defaultYears = sortedYears.slice(0, 2);
       const defaultCategories = response.categories.filter(category => category !== 'Investment');
       setFilters(prev => ({
         ...prev,

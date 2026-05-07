@@ -9,12 +9,13 @@ CATEGORY_MAPPING = {
     'Transportation': 'Transportation',
     'Flight': 'Transportation',
     'Living': 'Living',
-    'Rent': 'Living',
+    'Rent': 'Rent',
     'Home Setup': 'Living',
     'Restaurant': 'Restaurant',
     'Grocery': 'Grocery',
     'Gift': 'Gift',
-    'Investment': 'Investment'
+    'Investment': 'Investment',
+    'Pets': 'Pets'
 }
 
 # Currency settings

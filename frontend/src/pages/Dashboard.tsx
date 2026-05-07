@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Grid, Paper, Alert, CircularProgress, Stack, Typography, Drawer, List, ListItem, ListItemButton, ListItemText } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Box, Grid, Paper, Alert, CircularProgress, Stack, Typography } from '@mui/material';
 import { Controls } from '../components/Controls';
 import { BarChart } from '../components/BarChart';
 import { LineChart } from '../components/LineChart';
@@ -8,8 +7,6 @@ import { ExpenseTable } from '../components/ExpenseTable';
 import { useExpenseDataContext } from '../context/ExpenseDataContext';
 
 export const Dashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const [drawerOpen, setDrawerOpen] = useState(true);
   const {
     data,
     loading,
@@ -30,16 +27,14 @@ export const Dashboard: React.FC = () => {
 
   const calculateSummary = () => {
     if (!data?.lineChartData) return { total: 0, average: 0 };
-    
     const total = data.lineChartData.reduce((sum: number, item: { amount: number }) => sum + item.amount, 0);
     const average = total / data.lineChartData.length;
-    
     return { total, average };
   };
 
   const formatCurrency = (amount: number) => {
-    const currencySymbol = filters.currency === 'GBP' ? '£' : 
-                          filters.currency === 'USD' ? '$' : 
+    const currencySymbol = filters.currency === 'GBP' ? '£' :
+                          filters.currency === 'USD' ? '$' :
                           filters.currency === 'RMB' ? '¥' : '';
     return `${currencySymbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -56,17 +51,15 @@ export const Dashboard: React.FC = () => {
         availableCategories={availableCategories}
         availableYears={availableYears}
       />
-      
-      <Box sx={{ flexGrow: 1, ml: '280px', p: 2 }}>
+
+      <Box sx={{ flexGrow: 1, p: '28px', ml: '220px' }}>
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
+          <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
         )}
-        
+
         {loading && (
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-            <CircularProgress />
+            <CircularProgress sx={{ color: '#6366f1' }} />
           </Box>
         )}
 
@@ -74,76 +67,58 @@ export const Dashboard: React.FC = () => {
           <Stack spacing={3}>
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
-                <Paper elevation={1} sx={{ p: 3 }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Paper sx={{ p: 3 }}>
+                  <Typography
+                    sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', mb: 1 }}
+                  >
                     Total Spent
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ fontWeight: 'medium' }}>
+                  <Typography sx={{ fontSize: 36, fontWeight: 700, color: '#0f172a', lineHeight: 1, mb: 0.5 }}>
                     {formatCurrency(total)}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography sx={{ fontSize: 12, color: '#94a3b8' }}>
                     During selected period
                   </Typography>
                 </Paper>
               </Grid>
               <Grid item xs={12} md={6}>
-                <Paper elevation={1} sx={{ p: 3 }}>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Paper sx={{ p: 3 }}>
+                  <Typography
+                    sx={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', mb: 1 }}
+                  >
                     Average per {filters.timePeriod}
                   </Typography>
-                  <Typography variant="h4" component="div" sx={{ fontWeight: 'medium' }}>
+                  <Typography sx={{ fontSize: 36, fontWeight: 700, color: '#0f172a', lineHeight: 1, mb: 0.5 }}>
                     {formatCurrency(average)}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography sx={{ fontSize: 12, color: '#94a3b8' }}>
                     Based on {data.lineChartData.length} periods
                   </Typography>
                 </Paper>
               </Grid>
             </Grid>
 
-            <Paper elevation={1} sx={{ p: 3 }}>
+            <Paper sx={{ p: 3 }}>
               <BarChart data={data.barChartData} onBarClick={handleBarClick} mode="trend" />
             </Paper>
 
             {selectedDetail ? (
               <>
-                <Paper elevation={1} sx={{ p: 3 }}>
+                <Paper sx={{ p: 3 }}>
                   <ExpenseTable data={selectedDetail} />
                 </Paper>
-                <Paper elevation={1} sx={{ p: 3 }}>
+                <Paper sx={{ p: 3 }}>
                   <LineChart data={data.lineChartData} />
                 </Paper>
               </>
             ) : (
-              <Paper elevation={1} sx={{ p: 3 }}>
+              <Paper sx={{ p: 3 }}>
                 <LineChart data={data.lineChartData} />
               </Paper>
             )}
           </Stack>
         )}
       </Box>
-      
-      {/* Right-side drawer navigation */}
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        variant="persistent"
-        sx={{ width: 240, flexShrink: 0, '& .MuiDrawer-paper': { width: 240 } }}
-      >
-        <List>
-          <ListItem disablePadding>
-            <ListItemButton selected={window.location.pathname === '/latest'} onClick={() => navigate('/latest')}>
-              <ListItemText primary="Latest View" />
-            </ListItemButton>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemButton selected={window.location.pathname === '/trend'} onClick={() => navigate('/trend')}>
-              <ListItemText primary="Trend View" />
-            </ListItemButton>
-          </ListItem>
-        </List>
-      </Drawer>
     </Box>
   );
-}; 
+};

@@ -2,10 +2,6 @@ import React, { useState, useRef } from 'react';
 import {
   Box,
   Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   FormControlLabel,
   CircularProgress,
   Alert,
@@ -13,36 +9,22 @@ import {
   Paper,
   Divider,
   Typography,
-  SelectChangeEvent,
   Checkbox,
   FormGroup,
   ToggleButton,
-  styled,
+  ToggleButtonGroup,
 } from '@mui/material';
 import { ExpenseFilters } from '../api/client';
 
-// Styled components for better spacing
-const StyledFormControl = styled(FormControl)(({ theme }) => ({
-  marginBottom: theme.spacing(3),
-  width: '100%',
-}));
-
-const StyledToggleButton = styled(ToggleButton)(({ theme }) => ({
-  margin: theme.spacing(0.5),
-  minWidth: '60px',
-}));
-
-const CategoryLabel = styled(FormControlLabel)(({ theme }) => ({
-  width: '100%',
-  marginLeft: 0,
-  marginRight: 0,
-  '& .MuiFormControlLabel-label': {
-    width: '100%',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-}));
+const SECTION_LABEL_SX = {
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.08em',
+  color: '#94a3b8',
+  mb: 1,
+  display: 'block',
+};
 
 interface ControlsProps {
   filters: ExpenseFilters;
@@ -67,7 +49,6 @@ export const Controls: React.FC<ControlsProps> = ({
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle file selection
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files?.[0]) {
       onFileUpload(event.target.files[0]);
@@ -75,76 +56,69 @@ export const Controls: React.FC<ControlsProps> = ({
     }
   };
 
-  // Handle time period change
-  const handleTimePeriodChange = (event: SelectChangeEvent) => {
-    onFilterChange({ timePeriod: event.target.value });
-  };
-
-  // Handle currency change
-  const handleCurrencyChange = (event: SelectChangeEvent) => {
-    onFilterChange({ currency: event.target.value });
-  };
-
-  // Handle category selection
   const handleCategoryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const category = event.target.name;
     const isChecked = event.target.checked;
-    
     const updatedCategories = isChecked
       ? [...filters.categories, category]
       : filters.categories.filter(c => c !== category);
-    
     onFilterChange({ categories: updatedCategories });
   };
 
-  // Handle year toggle
   const handleYearToggle = (year: number) => {
     const updatedYears = filters.years.includes(year)
       ? filters.years.filter(y => y !== year)
       : [...filters.years, year];
-    
     onFilterChange({ years: updatedYears });
   };
 
-  // Handle select all categories
-  const handleSelectAllCategories = () => {
-    onFilterChange({ categories: availableCategories });
-  };
-
-  // Handle deselect all categories
-  const handleDeselectAllCategories = () => {
-    onFilterChange({ categories: [] });
-  };
+  const handleSelectAllCategories = () => onFilterChange({ categories: availableCategories });
+  const handleDeselectAllCategories = () => onFilterChange({ categories: [] });
 
   return (
     <Paper
       sx={{
         position: 'fixed',
-        top: 0,
+        top: 52,
         left: 0,
-        width: '250px',
-        height: '100vh',
-        p: 3,
+        width: 220,
+        height: 'calc(100vh - 52px)',
+        p: '24px 16px',
         overflowY: 'auto',
-        zIndex: 1000,
+        zIndex: 900,
         borderRadius: 0,
+        borderTop: 'none',
+        borderLeft: 'none',
+        borderBottom: 'none',
       }}
     >
-      <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
-        Filters
-      </Typography>
-
-      {/* File Upload Button */}
-      <Button
-        variant="contained"
+      {/* Upload */}
+      <Typography sx={SECTION_LABEL_SX}>Data File</Typography>
+      <Box
         component="label"
-        disabled={loading}
-        color={success ? 'success' : 'primary'}
-        fullWidth
-        size="large"
-        sx={{ mb: 3, py: 1.5 }}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 1,
+          border: '1.5px dashed #e2e8f0',
+          borderRadius: '8px',
+          width: '100%',
+          py: 1,
+          px: 1.5,
+          fontSize: 13,
+          color: '#94a3b8',
+          cursor: 'pointer',
+          mb: 3,
+          transition: 'all 0.15s',
+          '&:hover': {
+            borderColor: '#6366f1',
+            color: '#6366f1',
+            backgroundColor: '#eef2ff',
+          },
+        }}
       >
-        {loading ? <CircularProgress size={24} /> : 'UPLOAD FILE'}
+        {loading ? <CircularProgress size={16} /> : (success ? 'Uploaded ✓' : '↑ Upload file')}
         <input
           type="file"
           ref={fileInputRef}
@@ -157,127 +131,111 @@ export const Controls: React.FC<ControlsProps> = ({
             setError(null);
           }}
         />
-      </Button>
+      </Box>
 
       {/* Time Period */}
-      <StyledFormControl>
-        <InputLabel>Time Period</InputLabel>
-        <Select
-          value={filters.timePeriod}
-          label="Time Period"
-          onChange={handleTimePeriodChange}
-        >
-          <MenuItem value="month">Monthly</MenuItem>
-          <MenuItem value="week">Weekly</MenuItem>
-          <MenuItem value="year">Yearly</MenuItem>
-        </Select>
-      </StyledFormControl>
+      <Typography sx={SECTION_LABEL_SX}>Period</Typography>
+      <ToggleButtonGroup
+        value={filters.timePeriod}
+        exclusive
+        onChange={(_: React.MouseEvent, value: string) => {
+          if (value) onFilterChange({ timePeriod: value });
+        }}
+        fullWidth
+        sx={{ mb: 3 }}
+      >
+        <ToggleButton value="month">Monthly</ToggleButton>
+        <ToggleButton value="week">Weekly</ToggleButton>
+        <ToggleButton value="year">Yearly</ToggleButton>
+      </ToggleButtonGroup>
 
       {/* Currency */}
-      <StyledFormControl>
-        <InputLabel>Currency</InputLabel>
-        <Select
-          value={filters.currency}
-          label="Currency"
-          onChange={handleCurrencyChange}
-        >
-          <MenuItem value="GBP">GBP (£)</MenuItem>
-          <MenuItem value="USD">USD ($)</MenuItem>
-          <MenuItem value="EUR">EUR (€)</MenuItem>
-          <MenuItem value="RMB">RMB (¥)</MenuItem>
-        </Select>
-      </StyledFormControl>
+      <Typography sx={SECTION_LABEL_SX}>Currency</Typography>
+      <ToggleButtonGroup
+        value={filters.currency}
+        exclusive
+        onChange={(_: React.MouseEvent, value: string) => {
+          if (value) onFilterChange({ currency: value });
+        }}
+        fullWidth
+        sx={{ mb: 3 }}
+      >
+        <ToggleButton value="GBP">£</ToggleButton>
+        <ToggleButton value="USD">$</ToggleButton>
+        <ToggleButton value="EUR">€</ToggleButton>
+        <ToggleButton value="RMB">¥</ToggleButton>
+      </ToggleButtonGroup>
 
-      <Divider sx={{ my: 3 }} />
-
-      {/* Year selection, only if not hidden */}
       {!hideYear && (
         <>
-      {/* Years */}
-      <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-        Years
-      </Typography>
-      <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', mx: -0.5 }}>
-        {availableYears.map(year => (
-          <StyledToggleButton
-            key={year}
-            value={year}
-            selected={filters.years.includes(year)}
-            onChange={() => handleYearToggle(year)}
-            size="small"
-          >
-            {year}
-          </StyledToggleButton>
-        ))}
-      </Box>
+          <Divider sx={{ my: 2 }} />
+          <Typography sx={SECTION_LABEL_SX}>Years</Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 3 }}>
+            {availableYears.map(year => (
+              <ToggleButton
+                key={year}
+                value={year}
+                selected={filters.years.includes(year)}
+                onChange={() => handleYearToggle(year)}
+                size="small"
+                sx={{ minWidth: 52 }}
+              >
+                {year}
+              </ToggleButton>
+            ))}
+          </Box>
         </>
       )}
 
-      <Divider sx={{ my: 3 }} />
+      <Divider sx={{ my: 2 }} />
 
       {/* Categories */}
-      <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-        Categories
-      </Typography>
-      
-      {/* Select All / Deselect All buttons */}
-      <Box sx={{ mb: 2, display: 'flex', gap: 1 }}>
+      <Typography sx={SECTION_LABEL_SX}>Categories</Typography>
+      <Box sx={{ mb: 1.5, display: 'flex', gap: 1 }}>
         <Button
-          variant="outlined"
           size="small"
+          variant="outlined"
           onClick={handleSelectAllCategories}
-          sx={{ flex: 1 }}
+          sx={{ flex: 1, fontSize: 12, py: 0.5, px: 1 }}
         >
-          Select All
+          All
         </Button>
         <Button
-          variant="outlined"
           size="small"
+          variant="outlined"
           onClick={handleDeselectAllCategories}
-          sx={{ flex: 1 }}
+          sx={{ flex: 1, fontSize: 12, py: 0.5, px: 1 }}
         >
-          Deselect All
+          None
         </Button>
       </Box>
-      
-      <FormGroup sx={{ mb: 3 }}>
+
+      <FormGroup>
         {availableCategories.map(category => (
-          <CategoryLabel
+          <FormControlLabel
             key={category}
             control={
               <Checkbox
                 checked={filters.categories.includes(category)}
                 onChange={handleCategoryChange}
                 name={category}
+                size="small"
               />
             }
-            label={category}
-            sx={{ mb: 1 }}
+            label={
+              <Typography sx={{ fontSize: 13, color: '#64748b' }}>{category}</Typography>
+            }
+            sx={{ mb: 0.5, ml: 0, mr: 0 }}
           />
         ))}
       </FormGroup>
 
-      {/* Error Notification */}
-      <Snackbar
-        open={!!error}
-        autoHideDuration={6000}
-        onClose={() => setError(null)}
-      >
-        <Alert severity="error" onClose={() => setError(null)}>
-          {error}
-        </Alert>
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError(null)}>
+        <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>
       </Snackbar>
-
-      {/* Success Notification */}
-      <Snackbar
-        open={success}
-        autoHideDuration={3000}
-        onClose={() => setSuccess(false)}
-      >
-        <Alert severity="success" onClose={() => setSuccess(false)}>
-          File uploaded successfully!
-        </Alert>
+      <Snackbar open={success} autoHideDuration={3000} onClose={() => setSuccess(false)}>
+        <Alert severity="success" onClose={() => setSuccess(false)}>File uploaded successfully!</Alert>
       </Snackbar>
     </Paper>
   );
-}; 
+};

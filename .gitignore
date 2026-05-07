@@ -22,3 +22,18 @@ __pycache__/
 **/processed_transaction/
 **/statements/
 **/get_data/
+
+# Bank/API credentials and OAuth tokens — never commit
+/config/
+
+# Claude Code per-user settings
+.claude/
+
+# Local debug scripts
+data/debug_*.py
+
+# Local server utilities
+kill_server.ps1
+
+# Jupyter checkpoint dirs
+**/.ipynb_checkpoints/

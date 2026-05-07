@@ -6,20 +6,28 @@ interface PieChartProps {
   onPieClick?: (category: string) => void;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A28CFF', '#FF6699', '#FFB347', '#B0E57C'];
+const COLORS = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981',
+  '#3b82f6', '#14b8a6', '#f97316', '#ef4444', '#84cc16',
+];
+
+const TOOLTIP_STYLE = {
+  borderRadius: 8,
+  border: '1px solid #e2e8f0',
+  fontSize: 12,
+  fontFamily: '"Plus Jakarta Sans", sans-serif',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+};
 
 export const PieChart: React.FC<PieChartProps> = ({ data, onPieClick }) => {
-  // Calculate total for percentage conversion
   const total = data.reduce((sum, item) => sum + item.value, 0);
-  
-  // Convert values to percentages
-  const percentageData = data.map(item => ({
-    ...item,
-    value: total > 0 ? Number(((item.value / total) * 100).toFixed(1)) : 0
-  }));
 
-  // Sort by percentage in descending order
-  const sortedPercentageData = percentageData.sort((a, b) => b.value - a.value);
+  const percentageData = data
+    .map(item => ({
+      ...item,
+      value: total > 0 ? Number(((item.value / total) * 100).toFixed(1)) : 0,
+    }))
+    .sort((a, b) => b.value - a.value);
 
   const handlePieClick = (data: any) => {
     if (onPieClick && data.name) {
@@ -29,10 +37,13 @@ export const PieChart: React.FC<PieChartProps> = ({ data, onPieClick }) => {
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const item = payload[0].payload;
       return (
-        <div style={{ backgroundColor: 'white', padding: '10px', border: '1px solid #ccc' }}>
-          <p>{`${data.name}: ${data.value}%`}</p>
+        <div style={{ ...TOOLTIP_STYLE, backgroundColor: 'white', padding: '10px 14px' }}>
+          <p style={{ margin: 0, fontWeight: 600, color: '#0f172a' }}>
+            {item.name}
+          </p>
+          <p style={{ margin: '4px 0 0', color: '#64748b' }}>{item.value}%</p>
         </div>
       );
     }
@@ -43,23 +54,26 @@ export const PieChart: React.FC<PieChartProps> = ({ data, onPieClick }) => {
     <ResponsiveContainer width="100%" height={300}>
       <RechartsPieChart>
         <Pie
-          data={sortedPercentageData}
+          data={percentageData}
           dataKey="value"
           nameKey="name"
           cx="50%"
           cy="50%"
           outerRadius={100}
-          fill="#8884d8"
           label={({ name, value }) => `${name}: ${value}%`}
+          labelLine={{ stroke: '#e2e8f0' }}
           onClick={handlePieClick}
+          style={{ cursor: 'pointer' }}
         >
-          {sortedPercentageData.map((entry, index) => (
+          {percentageData.map((_, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>
         <Tooltip content={<CustomTooltip />} />
-        <Legend />
+        <Legend
+          wrapperStyle={{ fontSize: 12, fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+        />
       </RechartsPieChart>
     </ResponsiveContainer>
   );
-}; 
+};
